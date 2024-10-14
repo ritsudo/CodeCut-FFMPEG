@@ -7,20 +7,21 @@ using System.Threading.Tasks;
 namespace CodeCut_FFMPEG
 {
     using System;
+    using System.Text.RegularExpressions;
 
     public class TimeFragment
     {
         // Start time (required)
-        public DateTime StartTime { get; set; }
+        public TimeSpan StartTime { get; set; }
 
         // End time (nullable)
-        public DateTime? EndTime { get; set; }
+        public TimeSpan? EndTime { get; set; }
 
         // Fragment name (required)
         public string FragmentName { get; set; }
 
         // Constructor
-        public TimeFragment(DateTime startTime, string fragmentName, DateTime? endTime = null)
+        public TimeFragment(TimeSpan startTime, string fragmentName, TimeSpan? endTime = null)
         {
             StartTime = startTime;
             EndTime = endTime;
@@ -41,6 +42,34 @@ namespace CodeCut_FFMPEG
             {
                 Console.WriteLine("End Time: Not specified");
             }
+        }
+        public static string SanitizeFileName(string fileName)
+        {
+            // Define invalid characters for file names
+            string invalidChars = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+
+            // Create a regular expression that matches invalid characters
+            string regexPattern = $"[{Regex.Escape(invalidChars)}]";
+
+            // Replace invalid characters with an underscore or remove them
+            return Regex.Replace(fileName, regexPattern, "");
+        }
+
+
+        public string GetFFMpegCommandLine(string mp4FileName)
+        {
+            string command = "ffmpeg -i \"" + mp4FileName + "\" ";
+
+            command += "-ss " + StartTime.ToString();
+
+            if (!string.IsNullOrEmpty(EndTime?.ToString()))
+            {
+                command += " -to " + EndTime.ToString();
+            }
+
+            command += " -q:a 0 -map 0:v -map 0:a \"" + SanitizeFileName(FragmentName) + ".mp4\"";
+
+            return command;
         }
     }
 
